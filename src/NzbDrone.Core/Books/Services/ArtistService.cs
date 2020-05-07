@@ -21,6 +21,7 @@ namespace NzbDrone.Core.Music
         Author FindByName(string title);
         Author FindByNameInexact(string title);
         List<Author> GetCandidates(string title);
+        List<Author> GetReportCandidates(string reportTitle);
         void DeleteArtist(int authorId, bool deleteFiles, bool addImportListExclusion = false);
         List<Author> GetAllArtists();
         List<Author> AllForTag(int tagId);
@@ -136,6 +137,31 @@ namespace NzbDrone.Core.Music
             var output = new List<Author>();
 
             foreach (var func in ArtistScoringFunctions(title, title.CleanArtistName()))
+            {
+                output.AddRange(FindByStringInexact(artists, func.Item1, func.Item2));
+            }
+
+            return output.DistinctBy(x => x.Id).ToList();
+        }
+
+        public List<Tuple<Func<Author, string, double>, string>> ReportArtistScoringFunctions(string reportTitle, string cleanReportTitle)
+        {
+            Func<Func<Author, string, double>, string, Tuple<Func<Author, string, double>, string>> tc = Tuple.Create;
+            var scoringFunctions = new List<Tuple<Func<Author, string, double>, string>>
+            {
+                tc((a, t) => t.FuzzyContains(a.CleanName), cleanReportTitle),
+                tc((a, t) => t.FuzzyContains(a.Metadata.Value.Name), reportTitle)
+            };
+
+            return scoringFunctions;
+        }
+
+        public List<Author> GetReportCandidates(string reportTitle)
+        {
+            var artists = GetAllArtists();
+            var output = new List<Author>();
+
+            foreach (var func in ArtistScoringFunctions(reportTitle, reportTitle.CleanArtistName()))
             {
                 output.AddRange(FindByStringInexact(artists, func.Item1, func.Item2));
             }

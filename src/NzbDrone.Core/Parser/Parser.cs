@@ -343,47 +343,39 @@ namespace NzbDrone.Core.Parser
 
                 simpleTitle = CleanTorrentSuffixRegex.Replace(simpleTitle);
 
-                var escapedArtist = Regex.Escape(artistName.RemoveAccent()).Replace(@"\ ", @"[\W_]");
-                var escapedAlbums = string.Join("|", album.Select(s => Regex.Escape(s.Title.RemoveAccent())).ToList()).Replace(@"\ ", @"[\W_]");
+                var bestAlbum = album.OrderByDescending(x => simpleTitle.FuzzyContains(x.Title)).First();
 
-                var releaseRegex = new Regex(@"^(\W*|\b)(?<artist>" + escapedArtist + @")(\W*|\b).*(\W*|\b)(?<album>" + escapedAlbums + @")(\W*|\b)", RegexOptions.IgnoreCase);
+                var foundArtist = GetTitleFuzzy(simpleTitle, artistName);
+                var foundAlbum = GetTitleFuzzy(simpleTitle, bestAlbum.Title);
 
-                var match = releaseRegex.Matches(simpleTitle);
+                Logger.Trace($"Found {foundArtist} - {foundAlbum} with fuzzy parser");
 
-                if (match.Count != 0)
+                if (foundArtist == null || foundAlbum == null)
                 {
-                    try
-                    {
-                        var result = ParseAlbumMatchCollection(match);
+                    return null;
+                }
 
-                        if (result != null)
-                        {
-                            result.Quality = QualityParser.ParseQuality(title);
-                            Logger.Debug("Quality parsed: {0}", result.Quality);
+                var result = new ParsedAlbumInfo
+                {
+                    ArtistName = foundArtist,
+                    ArtistTitleInfo = GetArtistTitleInfo(foundArtist),
+                    AlbumTitle = foundAlbum
+                };
 
-                            result.ReleaseGroup = ParseReleaseGroup(releaseTitle);
+                try
+                {
+                    result.Quality = QualityParser.ParseQuality(title);
+                    Logger.Debug("Quality parsed: {0}", result.Quality);
 
-                            var subGroup = GetSubGroup(match);
-                            if (!subGroup.IsNullOrWhiteSpace())
-                            {
-                                result.ReleaseGroup = subGroup;
-                            }
+                    result.ReleaseGroup = ParseReleaseGroup(releaseTitle);
 
-                            Logger.Debug("Release Group parsed: {0}", result.ReleaseGroup);
+                    Logger.Debug("Release Group parsed: {0}", result.ReleaseGroup);
 
-                            result.ReleaseHash = GetReleaseHash(match);
-                            if (!result.ReleaseHash.IsNullOrWhiteSpace())
-                            {
-                                Logger.Debug("Release Hash parsed: {0}", result.ReleaseHash);
-                            }
-
-                            return result;
-                        }
-                    }
-                    catch (InvalidDateException ex)
-                    {
-                        Logger.Debug(ex, ex.Message);
-                    }
+                    return result;
+                }
+                catch (InvalidDateException ex)
+                {
+                    Logger.Debug(ex, ex.Message);
                 }
             }
             catch (Exception e)
@@ -396,6 +388,40 @@ namespace NzbDrone.Core.Parser
 
             Logger.Debug("Unable to parse {0}", title);
             return null;
+        }
+
+        private static string GetTitleFuzzy(string report, string name)
+        {
+            Logger.Trace($"Finding '{name}' in '{report}'");
+            var start = report.FuzzyFind(name, 0.6);
+
+            if (start == -1)
+            {
+                return null;
+            }
+
+            Logger.Trace($"start '{start}'");
+
+            var boundaries = WordDelimiterRegex.Matches(report);
+            var indices = new List<int> { -1 };
+
+            foreach (Match match in boundaries)
+            {
+                indices.Add(match.Index);
+                if (match.Length > 1)
+                {
+                    indices.Add(match.Index + match.Length - 1);
+                }
+            }
+
+            indices.Add(report.Length);
+
+            Logger.Trace(indices.ConcatToString(x => x.ToString()));
+
+            var wordStart = indices.OrderBy(x => Math.Abs(x + 1 - start)).First();
+            var wordEnd = indices.OrderBy(x => Math.Abs(x - (start + name.Length + 1))).First();
+
+            return report.Substring(wordStart + 1, wordEnd - wordStart - 1);
         }
 
         public static int ParseCalibreId(this string path)

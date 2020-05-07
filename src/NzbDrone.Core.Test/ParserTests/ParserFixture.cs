@@ -193,8 +193,8 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             GivenSearchCriteria("Black Sabbath", "Black Sabbath");
             var parseResult = Parser.Parser.ParseAlbumTitleWithSearchCriteria(releaseTitle, _artist, _albums);
-            parseResult.ArtistName.ToLowerInvariant().Should().Be("black sabbath");
-            parseResult.AlbumTitle.ToLowerInvariant().Should().Be("black sabbath");
+            parseResult.ArtistName.Replace('.', ' ').Replace('_', ' ').ToLowerInvariant().Should().Be("black sabbath");
+            parseResult.AlbumTitle.Replace('.', ' ').Replace('_', ' ').ToLowerInvariant().Should().Be("black sabbath");
         }
 
         [TestCase("Captain-Discography_1998_-_2001-CD-FLAC-2007-UTP", 1998, 2001)]

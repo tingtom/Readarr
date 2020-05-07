@@ -19,6 +19,8 @@ namespace NzbDrone.Core.Parser
         RemoteAlbum Map(ParsedAlbumInfo parsedAlbumInfo, int authorId, IEnumerable<int> bookIds);
         List<Book> GetAlbums(ParsedAlbumInfo parsedAlbumInfo, Author artist, SearchCriteriaBase searchCriteria = null);
 
+        ParsedAlbumInfo ParseAlbumTitleFuzzy(string title);
+
         // Music stuff here
         Book GetLocalAlbum(string filename, Author artist);
     }
@@ -212,6 +214,49 @@ namespace NzbDrone.Core.Parser
             }
 
             return artist;
+        }
+
+        public ParsedAlbumInfo ParseAlbumTitleFuzzy(string title)
+        {
+            var bestScore = 0.0;
+
+            Author bestAuthor = null;
+            Book bestBook = null;
+            var authorFirst = true;
+
+            var possibleAuthors = _artistService.GetReportCandidates(title);
+
+            foreach (var author in possibleAuthors)
+            {
+                _logger.Trace($"Trying possible author {author}");
+
+                var authorMatch = title.FuzzyMatch(author.Metadata.Value.Name, 0.5);
+                var possibleBooks = _albumService.GetCandidates(author.AuthorMetadataId, title);
+
+                foreach (var book in possibleBooks)
+                {
+                    var bookMatch = title.FuzzyMatch(book.Title, 0.5);
+                    var score = (authorMatch.Item2 + bookMatch.Item2) / 2;
+
+                    _logger.Trace($"Book {book} has score {score}");
+
+                    if (score > bestScore)
+                    {
+                        bestAuthor = author;
+                        bestBook = book;
+                        authorFirst = authorMatch.Item1 < bookMatch.Item1;
+                    }
+                }
+            }
+
+            _logger.Trace($"Best match: {bestAuthor} {bestBook}");
+
+            if (bestAuthor != null)
+            {
+                return Parser.ParseAlbumTitleWithSearchCriteria(title, bestAuthor, new List<Book> { bestBook });
+            }
+
+            return null;
         }
 
         public Book GetLocalAlbum(string filename, Author artist)
