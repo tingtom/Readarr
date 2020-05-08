@@ -16,11 +16,10 @@ namespace NzbDrone.Core.Download.Clients.IPFS
 {
     public class IPFS : DownloadClientBase<IPFSSettings>
     {
-        public IPFS(
-            IConfigService configService,
-            IDiskProvider diskProvider,
-            IRemotePathMappingService remotePathMappingService,
-            Logger logger)
+        public IPFS(IConfigService configService,
+                    IDiskProvider diskProvider,
+                    IRemotePathMappingService remotePathMappingService,
+                    Logger logger)
             : base(configService, diskProvider, remotePathMappingService, logger)
         {
         }
