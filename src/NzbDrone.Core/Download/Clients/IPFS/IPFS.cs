@@ -49,10 +49,23 @@ namespace NzbDrone.Core.Download.Clients.IPFS
             throw new NotImplementedException();
         }
 
-        protected async override void Test(List<ValidationFailure> failures)
+        protected override void Test(List<ValidationFailure> failures)
         {
             IpfsClient client = new IpfsClient(Settings.IPFSNodeUrl);
-            var versionInformation = await client.Generic.VersionAsync();
+
+            try
+            {
+                var version = client.Generic.VersionAsync().Result;
+
+                if (version.Count <= 0)
+                {
+                    failures.Add(new ValidationFailure(string.Empty, "Unable to retrieve version information for IPFS node"));
+                }
+            }
+            catch
+            {
+                failures.Add(new ValidationFailure(string.Empty, "Unable to connect to the IPFS node"));
+            }
         }
     }
 }
