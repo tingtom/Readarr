@@ -24,6 +24,7 @@ class AddIndexerModalContent extends Component {
       schemaError,
       usenetIndexers,
       torrentIndexers,
+      ipfsIndexers,
       onIndexerSelect,
       onModalClose
     } = this.props;
@@ -53,6 +54,23 @@ class AddIndexerModalContent extends Component {
                   <div>Readarr supports any indexer that uses the Newznab standard, as well as other indexers listed below.</div>
                   <div>For more information on the individual indexers, click on the info buttons.</div>
                 </Alert>
+
+                <FieldSet legend="IPFS">
+                  <div className={styles.indexers}>
+                    {
+                      ipfsIndexers.map((indexer) => {
+                        return (
+                          <AddIndexerItem
+                            key={indexer.implementation}
+                            implementation={indexer.implementation}
+                            {...indexer}
+                            onIndexerSelect={onIndexerSelect}
+                          />
+                        );
+                      })
+                    }
+                  </div>
+                </FieldSet>
 
                 <FieldSet legend="Usenet">
                   <div className={styles.indexers}>
