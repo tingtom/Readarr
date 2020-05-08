@@ -24,6 +24,7 @@ class AddDownloadClientModalContent extends Component {
       schemaError,
       usenetDownloadClients,
       torrentDownloadClients,
+      ipfsDownloadClients,
       onDownloadClientSelect,
       onModalClose
     } = this.props;
@@ -53,6 +54,23 @@ class AddDownloadClientModalContent extends Component {
                   <div>Readarr supports any downloadClient that uses the Newznab standard, as well as other downloadClients listed below.</div>
                   <div>For more information on the individual downloadClients, click on the info buttons.</div>
                 </Alert>
+
+                <FieldSet legend="IPFS">
+                  <div className={styles.downloadClients}>
+                    {
+                      ipfsDownloadClients.map((downloadClient) => {
+                        return (
+                          <AddDownloadClientItem
+                            key={downloadClient.implementation}
+                            implementation={downloadClient.implementation}
+                            {...downloadClient}
+                            onDownloadClientSelect={onDownloadClientSelect}
+                          />
+                        );
+                      })
+                    }
+                  </div>
+                </FieldSet>
 
                 <FieldSet legend="Usenet">
                   <div className={styles.downloadClients}>
