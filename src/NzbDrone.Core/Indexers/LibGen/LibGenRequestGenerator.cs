@@ -17,25 +17,32 @@ namespace NzbDrone.Core.Indexers.LibGen
         {
             var chain = new IndexerPageableRequestChain();
 
-            chain.Add(GetRequest());
+            chain.Add(GetRequest("test"));
 
             return chain;
         }
 
         public IndexerPageableRequestChain GetSearchRequests(AlbumSearchCriteria searchCriteria)
         {
-            return new IndexerPageableRequestChain();
+            var chain = new IndexerPageableRequestChain();
+
+            chain.Add(GetRequest(searchCriteria.AlbumQuery));
+
+            return chain;
         }
 
         public IndexerPageableRequestChain GetSearchRequests(ArtistSearchCriteria searchCriteria)
         {
-            return new IndexerPageableRequestChain();
+            var chain = new IndexerPageableRequestChain();
+
+            chain.Add(GetRequest(searchCriteria.ArtistQuery, "authors"));
+
+            return chain;
         }
 
-        private IEnumerable<IndexerRequest> GetRequest()
+        private IEnumerable<IndexerRequest> GetRequest(string search, string criteria = "", string language = "", string format = "")
         {
-            //TODO: Add search parameters
-            var request = new IndexerRequest($"http://gen.lib.rus.ec/fiction/?q=C%C3%A1sate+Conmigo&criteria=&language=&format=", HttpAccept.Json);
+            var request = new IndexerRequest($"http://gen.lib.rus.ec/fiction/?q={search}&criteria={criteria}&language={language}&format={format}", HttpAccept.Json);
 
             yield return request;
         }
