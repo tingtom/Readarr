@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using HtmlAgilityPack;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Indexers.LibGen
@@ -11,15 +13,34 @@ namespace NzbDrone.Core.Indexers.LibGen
     {
         public IList<ReleaseInfo> ParseResponse(IndexerResponse indexerResponse)
         {
-            return new List<ReleaseInfo>()
+            //Parse HTML
+            var html = new HtmlDocument();
+            html.LoadHtml(indexerResponse.Content);
+
+            //Get all books in the catalog table
+            var rows = html.DocumentNode.SelectNodes("//table[@class='catalog']/tbody/tr");
+
+            return rows.Select(row =>
             {
-                new ReleaseInfo()
+                var editLink = row.SelectSingleNode("//td[last()]/a");
+
+                //Must be able to get the MD5 for the book
+                if (editLink != null)
                 {
-                    Title = "Test book",
-                    DownloadProtocol = DownloadProtocol.IPFS,
-                    DownloadUrl = "bafykbzacedpdzcfe5e6xfwp2bjks63kvkcky7lmuum7f3ldtekmdwla67bz2s"
+                    var md5 = editLink.Attributes["href"].Value.Split('/').Last();
+
+                    return new ReleaseInfo()
+                    {
+                        Artist = row.ChildNodes[0].InnerText,
+                        Album = row.ChildNodes[1].InnerText,
+                        Title = row.ChildNodes[2].InnerText,
+                        DownloadUrl = md5,
+                        DownloadProtocol = DownloadProtocol.IPFS
+                    };
                 }
-            };
+
+                return null;
+            }).Where(a => a != null).ToList();
         }
     }
 }
