@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Indexers.LibGen
                         Artist = row.ChildNodes[0].InnerText,
                         Album = row.ChildNodes[1].InnerText,
                         Title = row.ChildNodes[2].InnerText,
-                        DownloadUrl = md5,
+                        DownloadUrl = md5.ToLower(),
                         DownloadProtocol = DownloadProtocol.IPFS
                     };
                 }
