@@ -1,16 +1,51 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using System.Data.SQLite;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dapper;
 using HtmlAgilityPack;
+using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Indexers.LibGen
 {
     public class LibGenParser : IParseIndexerResponse
     {
+        private readonly DbConnection _connection;
+
+        public LibGenParser(IAppFolderInfo appFolderInfo)
+        {
+            string path = Path.Combine(appFolderInfo.GetAppDataPath(), "hashes.db");
+
+            //Open hash database
+            _connection = SQLiteFactory.Instance.CreateConnection();
+            _connection.ConnectionString = GetConnectionString(path);
+            _connection.Open();
+        }
+
+        private string GetConnectionString(string path)
+        {
+            var connectionBuilder = new SQLiteConnectionStringBuilder();
+            connectionBuilder.DataSource = path;
+            connectionBuilder.CacheSize = -10000;
+            connectionBuilder.DateTimeKind = DateTimeKind.Utc;
+            connectionBuilder.JournalMode = OsInfo.IsOsx ? SQLiteJournalModeEnum.Truncate : SQLiteJournalModeEnum.Wal;
+            connectionBuilder.Pooling = true;
+            connectionBuilder.Version = 3;
+            return connectionBuilder.ConnectionString;
+        }
+
+        private string MapMD5(string md5)
+        {
+            return _connection.QueryFirstOrDefault<string>($"SELECT ipfs_blake2b FROM ipfs_fiction_hashes WHERE md5_file_name = '{md5}'");
+        }
+
         public IList<ReleaseInfo> ParseResponse(IndexerResponse indexerResponse)
         {
             //Parse HTML
@@ -22,20 +57,35 @@ namespace NzbDrone.Core.Indexers.LibGen
 
             return rows.Select(row =>
             {
+                var cols = row.ChildNodes.Where(n => n.NodeType == HtmlNodeType.Element).ToArray();
                 var editLink = row.SelectSingleNode("//td[last()]/a");
 
                 //Must be able to get the MD5 for the book
                 if (editLink != null)
                 {
+                    //Get the MD5 from the edit link
                     var md5 = editLink.Attributes["href"].Value.Split('/').Last();
+
+                    //Get the extension from the file column
+                    var ext = cols[4].InnerText.Split('/').First().Trim().ToLower();
+
+                    //Try to map the MD5 to IPFS hash
+                    var hash = MapMD5($"{md5.ToLower()}.{ext}");
+
+                    if (hash == null)
+                    {
+                        return null;
+                    }
+
+                    var publishDate = cols[4].Attributes["title"].Value.Replace("Uploaded at", "");
 
                     return new ReleaseInfo()
                     {
-                        Artist = row.ChildNodes[0].InnerText,
-                        Album = row.ChildNodes[1].InnerText,
-                        Title = row.ChildNodes[2].InnerText,
-                        DownloadUrl = md5.ToLower(),
-                        DownloadProtocol = DownloadProtocol.IPFS
+                        Guid = Guid.NewGuid().ToString(),
+                        Title = $"{cols[0].InnerText.Trim()} - {cols[1].InnerText} - {cols[2].InnerText}",
+                        DownloadUrl = hash,
+                        DownloadProtocol = DownloadProtocol.IPFS,
+                        PublishDate = DateTime.Parse(publishDate)
                     };
                 }
 
