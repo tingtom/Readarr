@@ -79,11 +79,13 @@ namespace NzbDrone.Core.Indexers.LibGen
 
                     var publishDate = cols[4].Attributes["title"].Value.Replace("Uploaded at", "");
 
+                    var author = cols[0].InnerText.Trim().Split(',').Reverse().Join(" ");
+
                     return new ReleaseInfo()
                     {
                         Guid = Guid.NewGuid().ToString(),
-                        Title = $"{cols[0].InnerText.Trim()} - {cols[1].InnerText} - {cols[2].InnerText}",
-                        DownloadUrl = hash,
+                        Title = new[] { author, cols[1].InnerText, cols[2].InnerText }.Where(part => !string.IsNullOrWhiteSpace(part)).Join(" - "),
+                        DownloadUrl = $"{hash}.{ext}",
                         DownloadProtocol = DownloadProtocol.IPFS,
                         PublishDate = DateTime.Parse(publishDate)
                     };
