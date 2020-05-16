@@ -123,7 +123,12 @@ namespace NzbDrone.Core.Download.Clients.IPFS
 
         public override void RemoveItem(string downloadId, bool deleteData)
         {
-            throw new NotImplementedException();
+            var path = Path.Combine(new[] { Settings.IPFSDownloadPath, downloadId.Split('_')[1] });
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
 
         protected override void Test(List<ValidationFailure> failures)
