@@ -84,7 +84,7 @@ namespace NzbDrone.Core.Indexers.LibGen
                     return new ReleaseInfo()
                     {
                         Guid = Guid.NewGuid().ToString(),
-                        Title = new[] { author, cols[1].InnerText, cols[2].InnerText }.Where(part => !string.IsNullOrWhiteSpace(part)).Join(" - "),
+                        Title = new[] { author, cols[1].InnerText, cols[2].InnerText }.Where(part => !string.IsNullOrWhiteSpace(part)).Join(" - ") + "." + ext,
                         DownloadUrl = $"{hash}.{ext}",
                         DownloadProtocol = DownloadProtocol.IPFS,
                         PublishDate = DateTime.Parse(publishDate)
