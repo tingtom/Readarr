@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentMigrator.Builders.Create.ForeignKey;
 using FluentValidation.Results;
-using Ipfs.Http;
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Organizer;
@@ -19,12 +19,16 @@ namespace NzbDrone.Core.Download.Clients.IPFS
 {
     public class IPFS : DownloadClientBase<IPFSSettings>
     {
+        private readonly IHttpClient _httpClient;
+
         public IPFS(IConfigService configService,
                     IDiskProvider diskProvider,
                     IRemotePathMappingService remotePathMappingService,
+                    IHttpClient httpClient,
                     Logger logger)
             : base(configService, diskProvider, remotePathMappingService, logger)
         {
+            _httpClient = httpClient;
         }
 
         public override string Name => "IPFS Node";
@@ -33,28 +37,43 @@ namespace NzbDrone.Core.Download.Clients.IPFS
 
         public string GetDownloadClientId(string filename)
         {
-            return Definition.Name + "_" + Path.GetFileName(filename) + "_" + _diskProvider.FileGetLastWrite(filename).Ticks;
+            return Definition.Name + "_" + Path.GetFileName(filename);
         }
 
         public override string Download(RemoteAlbum remoteAlbum)
         {
-            IpfsClient client = new IpfsClient(Settings.IPFSNodeUrl);
+            // Split the download url into hash and extension
+            var splitHash = remoteAlbum.Release.DownloadUrl.Split('.');
 
-            var path = Path.Combine(Settings.IPFSDownloadPath, FileNameBuilder.CleanFileName(remoteAlbum.Release.Title) + ".ipfs");
+            // Generate path for this file
+            var path = Path.Combine(Settings.IPFSDownloadPath, FileNameBuilder.CleanFileName(remoteAlbum.Release.Title) + "." + splitHash[1]);
 
             var task = Task.Run(() =>
             {
                 // Pin the hash if set in the settings
                 if (Settings.PinHash)
                 {
-                    client.Pin.AddAsync(remoteAlbum.Release.DownloadUrl, false).Wait();
+                    var pinRequest = new HttpRequest($"{Settings.IPFSNodeUrl}/api/v0/pin/add?arg={splitHash[0]}");
+                    var pinResponse = _httpClient.Post(pinRequest);
+
+                    if (pinResponse.StatusCode != System.Net.HttpStatusCode.OK)
+                    {
+                        _logger.Error("Unable to pin hash on IPFS node");
+                    }
                 }
 
                 // Download the file and store locally
                 using (var file = File.Create(path))
                 {
-                    var stream = client.FileSystem.ReadFileAsync(remoteAlbum.Release.DownloadUrl).Result;
-                    stream.CopyTo(file);
+                    var request = new HttpRequest($"{Settings.IPFSNodeUrl}/api/v0/cat?arg={splitHash[0]}");
+                    var response = _httpClient.Post(request);
+
+                    if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                    {
+                        _logger.Error("Unable to download file from IPFS node");
+                    }
+
+                    file.Write(response.ResponseData, 0, response.ResponseData.Length);
                 }
             });
 
@@ -65,11 +84,6 @@ namespace NzbDrone.Core.Download.Clients.IPFS
         {
             foreach (var file in _diskProvider.GetFiles(Settings.IPFSDownloadPath, SearchOption.TopDirectoryOnly))
             {
-                if (Path.GetExtension(file) != ".ipfs")
-                {
-                    continue;
-                }
-
                 var title = FileNameBuilder.CleanFileName(Path.GetFileName(file));
 
                 var historyItem = new DownloadClientItem
@@ -114,18 +128,10 @@ namespace NzbDrone.Core.Download.Clients.IPFS
 
         protected override void Test(List<ValidationFailure> failures)
         {
-            IpfsClient client = new IpfsClient(Settings.IPFSNodeUrl);
+            var request = new HttpRequest($"{Settings.IPFSNodeUrl}/api/v0/version");
+            var response = _httpClient.Post(request);
 
-            try
-            {
-                var version = client.Generic.VersionAsync().Result;
-
-                if (version.Count <= 0)
-                {
-                    failures.Add(new ValidationFailure(string.Empty, "Unable to retrieve version information for IPFS node"));
-                }
-            }
-            catch
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 failures.Add(new ValidationFailure(string.Empty, "Unable to connect to the IPFS node"));
             }
