@@ -1,10 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.IndexerSearch.Definitions;
 
@@ -12,11 +15,24 @@ namespace NzbDrone.Core.Indexers.LibGen
 {
     public class LibGenRequestGenerator : IIndexerRequestGenerator
     {
+        private readonly IAppFolderInfo _appFolderInfo;
+
+        public LibGenRequestGenerator(IAppFolderInfo appFolderInfo)
+        {
+            _appFolderInfo = appFolderInfo;
+        }
+
         public IndexerPageableRequestChain GetRecentRequests()
         {
             var chain = new IndexerPageableRequestChain();
 
-            chain.Add(GetRequest("test"));
+            string path = Path.Combine(_appFolderInfo.GetAppDataPath(), "hashes.db");
+
+            // Make sure the hashes exist for this indexer
+            if (File.Exists(path))
+            {
+                chain.Add(GetRequest("test"));
+            }
 
             return chain;
         }

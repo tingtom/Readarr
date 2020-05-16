@@ -24,9 +24,12 @@ namespace NzbDrone.Core.Indexers.LibGen
             string path = Path.Combine(appFolderInfo.GetAppDataPath(), "hashes.db");
 
             //Open hash database
-            _connection = SQLiteFactory.Instance.CreateConnection();
-            _connection.ConnectionString = GetConnectionString(path);
-            _connection.Open();
+            if (File.Exists(path))
+            {
+                _connection = SQLiteFactory.Instance.CreateConnection();
+                _connection.ConnectionString = GetConnectionString(path);
+                _connection.Open();
+            }
         }
 
         private string GetConnectionString(string path)
