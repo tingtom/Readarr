@@ -63,7 +63,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 using (var bookRef = EpubReader.OpenBook(file))
                 {
-                    result.ArtistTitle = bookRef.AuthorList.FirstOrDefault();
+                    result.ArtistTitle = bookRef.AuthorList.SelectMany(author => author.Split(',')).FirstOrDefault();
                     result.AlbumTitle = bookRef.Title;
 
                     var meta = bookRef.Schema.Package.Metadata;
