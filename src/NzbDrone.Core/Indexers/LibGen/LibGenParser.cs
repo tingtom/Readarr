@@ -59,6 +59,11 @@ namespace NzbDrone.Core.Indexers.LibGen
             //Get all books in the catalog table
             var rows = html.DocumentNode.SelectNodes("//table[@class='catalog']/tbody/tr");
 
+            if (rows == null)
+            {
+                return new List<ReleaseInfo>();
+            }
+
             return rows.Select(row =>
             {
                 var cols = row.ChildNodes.Where(n => n.NodeType == HtmlNodeType.Element).ToArray();
