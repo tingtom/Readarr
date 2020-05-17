@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using Dapper;
 using HtmlAgilityPack;
 using NzbDrone.Common.EnvironmentInfo;
@@ -87,7 +88,7 @@ namespace NzbDrone.Core.Indexers.LibGen
                     return new ReleaseInfo()
                     {
                         Guid = Guid.NewGuid().ToString(),
-                        Title = new[] { author, cols[1].InnerText, cols[2].InnerText }.Where(part => !string.IsNullOrWhiteSpace(part)).Join(" - ") + "." + ext,
+                        Title = HttpUtility.HtmlDecode(new[] { author, cols[1].InnerText, cols[2].InnerText }.Where(part => !string.IsNullOrWhiteSpace(part)).Join(" - ") + "." + ext),
                         DownloadUrl = hash,
                         DownloadProtocol = DownloadProtocol.IPFS,
                         PublishDate = DateTime.Parse(publishDate)
