@@ -38,7 +38,7 @@ namespace NzbDrone.Core.Indexers.LibGen
 
         public override IIndexerRequestGenerator GetRequestGenerator()
         {
-            return new LibGenRequestGenerator(_appFolderInfo);
+            return new LibGenRequestGenerator(_appFolderInfo, Settings);
         }
     }
 }

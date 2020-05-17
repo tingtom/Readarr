@@ -16,10 +16,12 @@ namespace NzbDrone.Core.Indexers.LibGen
     public class LibGenRequestGenerator : IIndexerRequestGenerator
     {
         private readonly IAppFolderInfo _appFolderInfo;
+        private readonly LibGenSettings _settings;
 
-        public LibGenRequestGenerator(IAppFolderInfo appFolderInfo)
+        public LibGenRequestGenerator(IAppFolderInfo appFolderInfo, LibGenSettings settings)
         {
             _appFolderInfo = appFolderInfo;
+            _settings = settings;
         }
 
         public IndexerPageableRequestChain GetRecentRequests()
@@ -57,7 +59,7 @@ namespace NzbDrone.Core.Indexers.LibGen
 
         private IEnumerable<IndexerRequest> GetRequest(string search, string criteria = "", string language = "", string format = "", int page = 1)
         {
-            var request = new IndexerRequest($"http://gen.lib.rus.ec/fiction/?q={search}&criteria={criteria}&language={language}&format={format}&page={page}", HttpAccept.Json);
+            var request = new IndexerRequest($"{_settings.BaseUrl}?q={search}&criteria={criteria}&language={language}&format={format}&page={page}", HttpAccept.Json);
 
             yield return request;
         }
