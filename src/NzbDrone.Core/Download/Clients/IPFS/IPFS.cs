@@ -42,18 +42,17 @@ namespace NzbDrone.Core.Download.Clients.IPFS
 
         public override string Download(RemoteAlbum remoteAlbum)
         {
-            // Split the download url into hash and extension
-            var splitHash = remoteAlbum.Release.DownloadUrl.Split('.');
-
             // Generate path for this file
-            var path = Path.Combine(Settings.IPFSDownloadPath, FileNameBuilder.CleanFileName(remoteAlbum.Release.Title) + "." + splitHash[1]);
+            var path = Path.Combine(Settings.IPFSDownloadPath, FileNameBuilder.CleanFileName(remoteAlbum.Release.Title));
 
             var task = Task.Run(() =>
             {
+                var hash = remoteAlbum.Release.DownloadUrl;
+
                 // Pin the hash if set in the settings
                 if (Settings.PinHash)
                 {
-                    var pinRequest = new HttpRequest($"{Settings.IPFSNodeUrl}/api/v0/pin/add?arg={splitHash[0]}");
+                    var pinRequest = new HttpRequest($"{Settings.IPFSNodeUrl}/api/v0/pin/add?arg={hash}");
                     var pinResponse = _httpClient.Post(pinRequest);
 
                     if (pinResponse.StatusCode != System.Net.HttpStatusCode.OK)
@@ -65,7 +64,7 @@ namespace NzbDrone.Core.Download.Clients.IPFS
                 // Download the file and store locally
                 using (var file = File.Create(path))
                 {
-                    var request = new HttpRequest($"{Settings.IPFSNodeUrl}/api/v0/cat?arg={splitHash[0]}");
+                    var request = new HttpRequest($"{Settings.IPFSNodeUrl}/api/v0/cat?arg={hash}");
                     var response = _httpClient.Post(request);
 
                     if (response.StatusCode != System.Net.HttpStatusCode.OK)
