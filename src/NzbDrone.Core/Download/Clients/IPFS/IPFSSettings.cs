@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Download.Clients.IPFS
             PinHash = true;
         }
 
-        [FieldDefinition(0, Label = "IPFS Node", Type = FieldType.Url, HelpText = "Url to the IPFS node to use, e.g. http://localhost:5001")]
+        [FieldDefinition(0, Label = "API Url", Type = FieldType.Url, HelpText = "Url to the IPFS API for the node you want to use, e.g. http://localhost:5001")]
         public string IPFSNodeUrl { get; set; }
 
         [FieldDefinition(1, Label = "Download Path", Type = FieldType.Path, HelpText = "")]
