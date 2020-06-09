@@ -25,11 +25,17 @@ namespace NzbDrone.Core.Indexers.LibGen
 
         public LibGenSettings()
         {
-            BaseUrl = "http://gen.lib.rus.ec/fiction/";
+            BaseUrl = "https://d5ae646747b34928a0f20643afea7a01.europe-west4.gcp.elastic-cloud.com:9243/knowl-libgen-fiction/_search";
         }
 
         [FieldDefinition(0, Label = "URL", Advanced = true, HelpText = "")]
         public string BaseUrl { get; set; }
+
+        [FieldDefinition(1, Label = "Username", Advanced = true, HelpText = "")]
+        public string Username { get; set; }
+
+        [FieldDefinition(2, Label = "Password", Advanced = true, HelpText = "", Type = FieldType.Password)]
+        public string Password { get; set; }
         public int? EarlyReleaseLimit { get; set; }
 
         public NzbDroneValidationResult Validate()

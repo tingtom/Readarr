@@ -13,8 +13,6 @@ namespace NzbDrone.Core.Indexers.LibGen
 {
     public class LibGen : HttpIndexerBase<LibGenSettings>
     {
-        private IAppFolderInfo _appFolderInfo;
-
         public LibGen(IHttpClient httpClient,
                       IIndexerStatusService indexerStatusService,
                       IConfigService configService,
@@ -23,7 +21,6 @@ namespace NzbDrone.Core.Indexers.LibGen
                       Logger logger)
             : base(httpClient, indexerStatusService, configService, parsingService, logger)
         {
-            _appFolderInfo = appFolderInfo;
         }
 
         public override string Name => "Library Genesis";
@@ -33,12 +30,12 @@ namespace NzbDrone.Core.Indexers.LibGen
 
         public override IParseIndexerResponse GetParser()
         {
-            return new LibGenParser(_appFolderInfo);
+            return new LibGenParser();
         }
 
         public override IIndexerRequestGenerator GetRequestGenerator()
         {
-            return new LibGenRequestGenerator(_appFolderInfo, Settings);
+            return new LibGenRequestGenerator(Settings);
         }
     }
 }
